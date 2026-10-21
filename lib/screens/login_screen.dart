@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
+import 'dart:async'; //3.1 Importar el timer
 
 class LoginScreen extends StatefulWidget {
   const new({super.key});
@@ -23,6 +24,38 @@ class _LoginScreenState extends State<LoginScreen> {
   SMITrigger? _trigSuccess;
   SMITrigger? _trigFail;
   SMINumber? _numLook;
+
+
+  //3.2 TImer para detener la mirada al dejar de escribir
+  Timer? _typingDebounce;
+
+  // 2.1 Crear variables para FocusNode
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+
+
+  //2.2 Crear los listeners (oyentes/chismosos)
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocusNode.addListener((){
+      if (_emailFocusNode.hasFocus) {
+        if(_isHandsUp != null) {
+          //ojos sin cerrar
+          _isHandsUp?.change(false);
+
+          //3.3 Mirada neutral
+          _numLook?.value = 50; //mirada neutral
+        }
+      }
+    });
+    _passwordFocusNode.addListener((){
+      //Manos arriba en password
+      _isHandsUp?.change(_passwordFocusNode.hasFocus);
+    });
+  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -74,10 +107,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 10),
                   //Email
                   TextField(
+                    //2.3 asignar foco al campo de texto
+                    focusNode: _emailFocusNode,
+
+                    //1.5 Vincular a campos de texto
                     onChanged: (value){
                       if (_isHandsUp != null){
                         //no tapes los ojos
-                        _isHandsUp!.change(false);
+                        //_isHandsUp!.change(false); //Esto ya esta puesto arriba en 2.1
                       }
 
                       //si isCheking es null
@@ -85,6 +122,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       //Activar el modo chismoso
                       _isChecking!.change(true);
+
+                      //3.4 Implementar numLook
+                      //Ajustes del 0 al 100
+                      //80 es medida de calibracion. clamp es el rango "(abrazadera)"
+                      final look = (value.length / 80.0 * 100).clamp(0.0, 100.0);
+                      _numLook?.value = look;
+
+                      //3.5 Debounce: si  vuelve a teclar reinicia el contador
+                      _typingDebounce?.cancel(); //cancelamos cualquier timer existente
+                      //crear nuevo timer
+                      _typingDebounce = Timer(const Duration(seconds: 3),(){
+                        //si se cierra la pantalla (!mounted)
+                        if(!mounted) return;
+                        _isChecking?.change(false);
+                      });
+
                     },
 
 
@@ -101,11 +154,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(height: 10),
                   //Constraseña
                   TextField(
+                    //2.3 Asignar foco al campo de texto
+                    focusNode: _passwordFocusNode,
                     onChanged: (value){
+                    
+                    
                       //1.5 Vincular a campos de texto
                       if (_isChecking != null){
                         //no tapes los ojos
-                        _isChecking!.change(false);
+                        //_isChecking!.change(false);
                       }
 
                       //si isCheking es null
@@ -141,5 +198,15 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+  @override
+  void dispose(){
+    //paso 2.4 liberar recursos de los FocusNode
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+
+    //3.5 Liberar Timer
+    _typingDebounce?.cancel();
+    super.dispose();
   }
 }
