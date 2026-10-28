@@ -3,7 +3,7 @@ import 'package:rive/rive.dart';
 import 'dart:async'; //3.1 Importar el timer
 
 class LoginScreen extends StatefulWidget {
-  const new({super.key});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     artboard.addController(_controller!);
 
                     //Vincular las variables
-                    _isChecking = _controller!.findSMI('isCheking');
+                    _isChecking = _controller!.findSMI('isChecking');
                     _isHandsUp = _controller!.findSMI('isHandsUp');
                     _trigSuccess = _controller!.findSMI('trigSuccess');
                     _trigFail = _controller!.findSMI('trigFail');
@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       //3.4 Implementar numLook
                       //Ajustes del 0 al 100
                       //80 es medida de calibracion. clamp es el rango "(abrazadera)"
-                      final look = (value.length / 80.0 * 100).clamp(0.0, 100.0);
+                      final look = (value.length / 50.0 * 100).clamp(0.0, 100.0);
                       _numLook?.value = look;
 
                       //3.5 Debounce: si  vuelve a teclar reinicia el contador
