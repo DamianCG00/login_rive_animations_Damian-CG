@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'dart:async'; //3.1 Importar el timer
+import 'package:firebase_auth/firebase_auth.dart';
+import 'products_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,6 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String? emailError;
   String? passError;
 
+  bool _isLoading = false;
+
    // 4.3 Validadores
   bool isValidEmail(String email) {
     final re = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
@@ -57,18 +61,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   //4.4 Accion al boton
-  void _onLogin(){
+  Future<void> _onLogin() async {
     //de lo que escribio el usuario, quita espacios en blanco
     final email = emailCtrl.text.trim();
     final pass = passCtrl.text; //NO SE RECOMIENDA COLOCAR EL TRIM EN LAS CONTRASEÑAS
 
     //Recalcular errores
-    final emailTypedError = isValidEmail(email) ? null : 'Email Invalido';
-    final passwordTypedError = isValidPassword(pass) ? null : 'Contraseña Invalida';
+    final emailTypedError = isValidEmail(email) ? null : 'Email Inválido';
+    final passwordTypedError = isValidPassword(pass) ? null : 'Contraseña Inválida';
 
     //4.5 Avisar que hubo u cambio de estado y mostrarlo en la pantalla
     setState(() {
-      emailError =emailTypedError;
+      emailError = emailTypedError;
       passError = passwordTypedError;
     });
 
@@ -79,16 +83,40 @@ class _LoginScreenState extends State<LoginScreen> {
     _isHandsUp?.change(false);
     _numLook?.value = 50.0; //mirada neutral
 
-
     //4.7 Activar triggers
-    if(emailTypedError == null && passwordTypedError == null){
-      _trigSuccess?.fire();
-
-    } else {
+    if (emailTypedError != null || passwordTypedError != null) {
       _trigFail?.fire();
-    }  
+      return;
+    }
 
+    setState(() {
+      _isLoading = true;
+    });
 
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: pass,
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+      _trigSuccess?.fire();
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ProductsScreen()),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _trigFail?.fire();
+    }
   }
 
   //2.2 Crear los listeners (oyentes/chismosos)
@@ -276,12 +304,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 50,
                     color: Colors.purple,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12) 
-                      ),
-
-                    onPressed: _onLogin,
-                    child: Text("Login", style: TextStyle(color: Colors.white)),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    onPressed: _onLogin,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Login',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                  ),
 
                     const SizedBox(height: 20),
                     // No tienes cuenta? Creala
